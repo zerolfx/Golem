@@ -1,8 +1,8 @@
 package main
 
 import (
+	"../exif"
 	"fmt"
-	"github.com/zerolfx/golem/exif"
 	"os"
 )
 

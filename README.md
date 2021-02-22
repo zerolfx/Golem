@@ -1,4 +1,5 @@
 Update: Ugly hack for IPTC to obtain description and keywords.
+check examples/main.go for reference
 
 ---
 
