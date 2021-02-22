@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/jurgen-kluft/golem/exif"
+	"github.com/zerolfx/golem/exif"
 	"os"
 )
 
@@ -19,6 +19,6 @@ func main() {
 	}
 
 	basicInfo := ImgMeta.GetBasicInfo(image)
-	fmt.Printf("Image: width:%v, height:%v\n", basicInfo.Width, basicInfo.Height)
-	fmt.Printf("Keywords: %v\n", basicInfo.Keywords)
+	fmt.Printf("IPTC Description: %v\n", basicInfo.Description)
+	fmt.Printf("IPTC Keywords: %v\n", basicInfo.Keywords)
 }

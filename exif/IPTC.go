@@ -1,8 +1,12 @@
 package ImgMeta
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+	"golang.org/x/text/encoding/ianaindex"
+	"golang.org/x/text/transform"
+	"io/ioutil"
 	"time"
 )
 
@@ -168,7 +172,15 @@ func (t tIPTCRecordReader) ReadShort() int16 {
 }
 func (t tIPTCRecordReader) ReadString() string {
 	data := t.RecordData()
-	return string(data)
+
+	encoder, _ := ianaindex.MIME.Encoding("gbk")
+	transformer := transform.NewReader(bytes.NewBuffer(data), encoder.NewDecoder())
+	newData, err := ioutil.ReadAll(transformer)
+	if err != nil {
+		return string(data)
+	}
+
+	return string(newData)
 }
 func (t tIPTCRecordReader) ReadDate() time.Time {
 	//data := t.RecordData()
@@ -188,7 +200,7 @@ func (t tIPTCAPP) ReadValue(tagID2Find uint16) (interface{}, error) {
 
 	// Skip the IPTC APP13 header (18 bytes)
 	iptcHeader := tIPTCHeader{block: t.block[18:], endian: t.endian}
-
+	res := make(map[uint16]interface{})
 	// Valid header == 0x38 0x42 0x49 0x4d 0x04
 	for iptcHeader.HasValidHeader() {
 		// fmt.Printf("IPTC Header, name:%s, size:%v\n", iptcHeader.Name(), iptcHeader.RecordSize())
@@ -202,13 +214,21 @@ func (t tIPTCAPP) ReadValue(tagID2Find uint16) (interface{}, error) {
 				field, ok := aIPTCFields[fieldID]
 				if ok {
 					if field.fieldTypeID == IptcFieldTypeShort {
-						fmt.Printf("IPTC tag:%v, type:'short', value:%v\n", fieldID, recordReader.ReadShort())
+						res[fieldID] = recordReader.ReadShort()
+						//fmt.Printf("IPTC tag:%v, type:'short', value:%v\n", fieldID, recordReader.ReadShort())
 					} else if field.fieldTypeID == IptcFieldTypeString {
-						fmt.Printf("IPTC tag:%v, type:'string', value:%v\n", fieldID, recordReader.ReadString())
+						if value, ok := res[fieldID]; ok {
+							res[fieldID] = append(value.([]string), recordReader.ReadString())
+						} else {
+							res[fieldID] = []string{recordReader.ReadString()}
+						}
+						//fmt.Printf("IPTC tag:%v, type:'string', value:%v\n", fieldID, recordReader.ReadString())
 					} else if field.fieldTypeID == IptcFieldTypeDate {
-						fmt.Printf("IPTC tag:%v, type:'date', value:%v\n", fieldID, recordReader.ReadDate())
+						res[fieldID] = recordReader.ReadDate()
+						//fmt.Printf("IPTC tag:%v, type:'date', value:%v\n", fieldID, recordReader.ReadDate())
 					} else if field.fieldTypeID == IptcFieldTypeTime {
-						fmt.Printf("IPTC tag:%v, type:'time', value:%v\n", fieldID, recordReader.ReadTime())
+						res[fieldID] = recordReader.ReadTime()
+						//fmt.Printf("IPTC tag:%v, type:'time', value:%v\n", fieldID, recordReader.ReadTime())
 					}
 					//if fieldID == tagID2Find {
 					//	if field.fieldTypeID == IptcFieldTypeShort {
@@ -230,7 +250,7 @@ func (t tIPTCAPP) ReadValue(tagID2Find uint16) (interface{}, error) {
 		iptcHeader = iptcHeader.Next()
 	}
 
-	return int(0), &exifError{"Reading IPTC tag value failed"}
+	return res, nil
 }
 
 const (
