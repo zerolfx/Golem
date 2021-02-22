@@ -8,6 +8,7 @@ import (
 	"golang.org/x/text/transform"
 	"io/ioutil"
 	"time"
+	"unicode/utf8"
 )
 
 /*
@@ -172,6 +173,9 @@ func (t tIPTCRecordReader) ReadShort() int16 {
 }
 func (t tIPTCRecordReader) ReadString() string {
 	data := t.RecordData()
+	if utf8.Valid(data) {
+		return string(data)
+	}
 
 	encoder, _ := ianaindex.MIME.Encoding("gbk")
 	transformer := transform.NewReader(bytes.NewBuffer(data), encoder.NewDecoder())
